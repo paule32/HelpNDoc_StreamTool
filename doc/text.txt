@@ -1,0 +1,5 @@
+// this file is included from test.src
+
+@mainpage
+\title this is from "text.txt"
+@end

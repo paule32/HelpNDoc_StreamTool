@@ -1,0 +1,41 @@
+package HelpNdocTool;
+
+{$R *.res}
+{$R 'HelpNdocTool.dcr'}
+{$ALIGN 8}
+{$ASSERTIONS OFF}
+{$BOOLEVAL OFF}
+{$DEBUGINFO ON}
+{$EXTENDEDSYNTAX ON}
+{$IMPORTEDDATA ON}
+{$IOCHECKS ON}
+{$LOCALSYMBOLS ON}
+{$LONGSTRINGS ON}
+{$OPENSTRINGS ON}
+{$OPTIMIZATION ON}
+{$OVERFLOWCHECKS ON}
+{$RANGECHECKS ON}
+{$REFERENCEINFO OFF}
+{$SAFEDIVIDE ON}
+{$STACKFRAMES OFF}
+{$TYPEDADDRESS OFF}
+{$VARSTRINGCHECKS ON}
+{$WRITEABLECONST OFF}
+{$MINENUMSIZE 1}
+{$IMAGEBASE $4000000}
+{$DESCRIPTION 'HelpNdoc IBE-Software strream tool'}
+{$IMPLICITBUILD ON}
+
+requires
+  rtl,
+  vcl,
+  SynEdit_R7,
+  vclx,
+  vcldb,
+  dbrtl,
+  visualclx;
+
+contains
+  SynHighlighterHelpNdoc in 'SynHighlighterHelpNdoc.pas';
+
+end.

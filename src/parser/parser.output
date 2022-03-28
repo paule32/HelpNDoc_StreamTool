@@ -1,0 +1,49 @@
+Terminals unused in grammar
+
+    TOK_NUMBER
+
+
+Grammar
+
+    0 $accept: program $end
+
+    1 program: %empty
+
+
+Terminals, with rules where they appear
+
+    $end (0) 0
+    error (256)
+    TOK_NUMBER <val_int64> (258)
+
+
+Nonterminals, with rules where they appear
+
+    $accept (4)
+        on left: 0
+    program (5)
+        on left: 1
+        on right: 0
+
+
+State 0
+
+    0 $accept: . program $end
+
+    $default  reduce using rule 1 (program)
+
+    program  go to state 1
+
+
+State 1
+
+    0 $accept: program . $end
+
+    $end  shift, and go to state 2
+
+
+State 2
+
+    0 $accept: program $end .
+
+    $default  accept

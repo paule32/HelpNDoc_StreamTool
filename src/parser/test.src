@@ -1,0 +1,37 @@
+/* this is a block C comment
+ * you can have multiple lines
+ * without worries.
+ */
+
+// this macro includes the file: .\text.txt
+$include ".\text.txt"
+
+// you can use $i to include files, too.
+// $i "same as $include"
+
+// to show the little power of this Tool source, First, try to
+// use this original file structure at translation time...
+// Then remove the last "e" from @mainpage so the keyword is
+// named @mainpag  then try to translate - what can you realize ? :-)
+//
+// here is a command line call: C:\parser.exe this.file.ext
+
+@mainpage
+\autor     Jens Kallup
+\email     kallup.jens@web.de  (hint: this line should be empty on screen)
+\title     This is a Example
+\version   1.0.0
+\copyright (c) 2022 by IBE-Software
+\summary   All inclusive package for help creation.
+@end
+
+// this is a one line comment
+// HINT:
+// line 8 does are not displayed, because macro \email is not
+// declared in the keyword tree !
+
+// Happy new Week, Jens
+
+@mainpage
+\version 2
+@end
