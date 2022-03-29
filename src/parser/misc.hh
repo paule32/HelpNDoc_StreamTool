@@ -24,6 +24,7 @@
 #include <cctype>
 #include <locale>
 
+#include <variant>
 #include <vector>
 #include <map>
 

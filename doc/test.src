@@ -1,9 +1,68 @@
+// -------------------------------------------------------------------
+// File     : test.src
+// Autor    : (c) 2022 by Jens Kallup <kallup.jens@web.de>
+// Copyright: All rights reserved.
+// Date     : March, 2022
+//
+// Desc     : Shows some possibilities that You can use when You write
+//            help files with the HelpNDoc 7.9.1 Application.
+// -------------------------------------------------------------------
+
+// this is a C++ style one line comment
+
 /* this is a block C comment
  * you can have multiple lines
  * without worries.
  */
 
-// this macro includes the file: .\text.txt
+// --------------------------------------------------------------------
+// Syntax for this tool:
+//
+// $  = begin a macro:
+//      include  = include a file from the position of $include
+//      template = include a template file
+//
+// @  = begin a topic markup, page, ...
+//      end      = mark a paragraph as "end"
+//      mainpage = index page
+//      ref      = reference to a topic or link
+//
+// \  = sub settings for @
+//      autor     = autor name of the project
+//      copyright = a copyright notice from the autor
+//      summary   = a summary for a project, page ...
+//      title     = title of the project, page, ...
+//      version   = version of the text
+//      
+//
+// #  = format style for the text of \keys (in $template file)
+//      background = background of the object:
+//        color = background color:
+//          rgb   = red, green, and blue values
+//                  valid values for r,g, and b are 0..255
+//          rgba  = same as rgb, but with alpha value
+//                  valid values for r,g, and b are 0..255
+//                  valid values for alpha are 0..1 float (0.5)
+//
+//        image = background image
+//
+//      bold   = t or f (font is bold = t, font is not bold = f)
+//      color  = foreground color of the object, font, ...
+//      italic = t or f (font is italic = t, else f)
+//      size   = n n is a Integer value of the size of the font
+//
+// Each style is delimited by a vertical line sign: |
+// --------------------------------------------------------------------
+
+// --------------------------------------------------------------------
+// You can use the $template macro, to select a template for your help
+// project. Templates can be customize by the user.
+// --------------------------------------------------------------------
+$template ".\templates\books\example1.src"
+
+// -------------------------------------------------------------------
+// this macro includes the file: .\text.txt from current directory.
+// -------------------------------------------------------------------
 $include ".\text.txt"
 
 // you can use $i to include files, too.
@@ -21,11 +80,10 @@ $include ".\text.txt"
 \email     kallup.jens@web.de  (hint: this line should be empty on screen)
 \title     This is a Example
 \version   1.0.0
-\copyright (c) 2022 by IBE-Software
+\copyright (c) 2022 by Jens Kallup <kallup.jens@web.de>
 \summary   All inclusive package for help creation.
 @end
 
-// this is a one line comment
 // HINT:
 // line 8 does are not displayed, because macro \email is not
 // declared in the keyword tree !

@@ -1,0 +1,12 @@
+// -------------------------------------------------------------------
+// File     : example1.src
+// Autor    : (c) 2022 by Jens Kallup <kallup.jens@web.de>
+// Copyright: All rights reserved.
+// Date     : March, 2022
+//
+// Desc     : Shows some possibilities that You can use when You write
+//            help files with the HelpNDoc 7.9.1 Application.
+// -------------------------------------------------------------------
+
+#title bold=t|size=14pt
+

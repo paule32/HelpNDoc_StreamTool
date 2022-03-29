@@ -640,6 +640,8 @@ char *yytext_ptr;
 // -------------------------------------------------------
 // File: parser.l
 // Desc: parser for HelpNdoc.exe stream Tool 1.0
+//       With this tool, You can create HTML Help file on
+//       the command line console.
 //
 // Autor: Jens Kallup <kallup.jens@web.de>
 // Copy : (c) 2022 by Jens Kallup
@@ -659,41 +661,44 @@ void count(void);
 
 int yyerror(const char*);
 
-int line_row  = 1;
-int line_col  = 1;
+int line_row = 1;
+int line_col = 1;
 
 std::vector<char> tmpvec;
 
 void handle_str();
 
 // HelpNdoc API related ----------------------------------
+namespace HelpNDoc_Version7_9_1 {
 // --------------------------------------------------------------
-// this acts as a lister for a object function arguments.
+// type's for an argument of a single function ...
 // --------------------------------------------------------------
-class HelpNDocAPI_FunctionArgument {
-public:
-    // constructor's:
-    HelpNDocAPI_FunctionArgument() { }
-};
-
-// --------------------------------------------------------------
-// this class stands for a single type :
-// --------------------------------------------------------------
-class HelpNDocAPI_Type {
-public:
-};
-
+using HelpNDocAPI_ArgumentType = std::variant<
+    int,                // is integer
+    double,             // is double
+    std::string         // is std::string
+>;
+using HelpNDocAPI_ArgumentMap = std::map<
+    int,                // argument no.
+    HelpNDocAPI_ArgumentType
+>;
 // --------------------------------------------------------------
 // this class stands for a single object :
 // --------------------------------------------------------------
 class HelpNDocAPI_Object {
 private:
-    std::string func_name;
-    std::vector< HelpNDocAPI_FunctionArgument > args;
+    std::map<
+        std::string,              // function name
+        HelpNDocAPI_ArgumentMap   // arguments
+    > Functions;
 public:
     // constructor's:
-    HelpNDocAPI_Object(const char* func) :func_name(std::move(func)) { }
-    HelpNDocAPI_Object(std::string func) :func_name(std::move(func)) { }
+    //HelpNDocAPI_Object(                           // ctor
+    //    const char* func,                         // function name
+    //    HelpNDocAPI_ArgumentMap args) {           // arguments
+    //    Functions [ std::string(func) ] = args;
+    //}
+    HelpNDocAPI_Object(std::string func) { }
     
     // destructor:
     ~HelpNDocAPI_Object() { }
@@ -739,37 +744,311 @@ private:
     std::vector< HelpNDocAPI_Object > HndTopicsKeywordsEx;     // Additional properties and methods to handle relationship between topics and keywords.
     std::vector< HelpNDocAPI_Object > HndTopicsMeta;           // Access to topics meta data.
     std::vector< HelpNDocAPI_Object > HndTopicsProperties;     // Handle relationship between topics and properties.
-    std::vector< HelpNDocAPI_Object > HndTopicTags;            // Handle relationship between topics and tags.
+    std::vector< HelpNDocAPI_Object > HndTopicsTags;           // Handle relationship between topics and tags.
     
     // Global types:
-    std::vector< HelpNDocAPI_Type   > THndBuildInfo;
-    std::vector< HelpNDocAPI_Type   > THndBuildInfoArray;
-    std::vector< HelpNDocAPI_Type   > THndDictionaryInfo;
+    std::vector< HelpNDocAPI_Object > THndBuildInfo;
+    std::vector< HelpNDocAPI_Object > THndBuildInfoArray;
+    std::vector< HelpNDocAPI_Object > THndDictionaryInfo;
 
-    // availabel members:
-    std::vector< std::string > HndUtils_FunctionNames = {
-        {"FilterAlphaNumericString"}, // Filter a string to make it alpha-numeric only. Converts accented characters too.
-        {"HexToTColor"},      // Converts an hexadecimal value to a TColor
-        {"HTMLDecode"},       // Converts a string that has been HTML-encoded into a decoded string.
-        {"HTMLEncode"},       // Converts a string into an HTML-encoded string.
-        {"HTMLEscape"},       // Escape HTML entities so that they can be included in HTML text or attribute.
-        {"HTMLToText"},       // Converts a HTML content to simple text without any tags.
-        {"IdnEncode"},        // Performs a International Domain Name (IDNA) Punycode encoding.
-        {"IdnDecode"},        // Performs a International Domain Name (IDNA) Punycode decoding.
-        {"JSEncode"},         // Encodes a string for use in a JavaScript string literal.
-        {"JSEscapeQuote"},    // Escape single and double quotes in a JavaScript string literal.
-        {"TColorToHex"},      // Converts a TColor string value to a heaxadecimal string.
-        {"UrlEncode"},        // Performs a URL percent encoding.
-        {"UrlDecode"}         // Performs a URL percent decoding.
+    // placeholder's:
+    static std::string _String ;
+    static std::string _Bool   ;
+    static std::string _Integer;
+    static std::string _TColor ;
+    
+    HelpNDocAPI_ArgumentMap result_map = { {0, _String}, { 1, _String } };
+    
+    // -----------------------------------------
+    // HndUtils:
+    // Various utility methods.
+    // availabel members ...
+    // -----------------------------------------
+    std::map< std::string, HelpNDocAPI_ArgumentMap > HndUtils_FunctionNames = {
+        // Filter a string to make it alpha-numeric only. Converts accented characters too.
+        {std::string("FilterAlphaNumericString"), {
+            { 0, _String },   // 0 = the result parameter: String
+            { 1, _String },   // 1 = aStr
+            { 2, _Bool   },   // 2 = const doKeepSpaces
+            { 3, _Bool   },   // 3 = const doKeepUnderscore
+            { 4, _Bool   }    // 4 = const doKeepDash
+            }
+        },
+        
+        {std::string("HexToTColor"  ), result_map },    // Converts an hexadecimal value to a TColor
+        {std::string("HTMLDecode"   ), result_map },    // Converts a string that has been HTML-encoded into a decoded string.
+        {std::string("HTMLEncode"   ), result_map },    // Converts a string into an HTML-encoded string.
+        {std::string("HTMLEscape"   ), result_map },    // Escape HTML entities so that they can be included in HTML text or attribute,
+        {std::string("HTMLToText"   ), result_map },    // Converts a HTML content to simple text without any tags.
+        {std::string("IdnEncode"    ), result_map },    // Performs a International Domain Name (IDNA) Punycode encoding.
+        {std::string("IdnDecode"    ), result_map },    // Performs a International Domain Name (IDNA) Punycode decoding.
+        {std::string("JSEncode"     ), result_map },    // Encodes a string for use in a JavaScript string literal.
+        {std::string("JSEscapeQuote"), result_map },    // Escape single and double quotes in a JavaScript string literal.
+        {std::string("TColorToHex"  ), result_map },    // Converts a TColor string value to a heaxadecimal string.
+        {std::string("TColorToHex"  ), {                // Converts a TColor string value to a heaxadecimal string.
+            { 0, _String },   // 0 = the result parameter: String
+            { 1, _String }    // 1 = TColor
+            }
+        },
+        {std::string("UrlEncode"    ), result_map },    // Performs a URL percent encoding.
+        {std::string("UrlDecode"    ), result_map }     // Performs a URL percent decoding.
+    };
+    
+    // -----------------------------------------
+    // HndBuilds:
+    // Properties and methods for Builds.
+    // availabel members ...
+    // -----------------------------------------
+    #if 0
+    std::map< std::string, HelpNDocAPI_ArgumentMap > HndBuilds_FunctionNames = {
+        {std::string("CreateBuild"         ), result_map },
+        {std::string("DeleteAllBuilds"     ), result_map },
+        {std::string("DeleteBuild"         ), result_map },
+        {std::string("GetBuildEnabled"     ), result_map },
+        {std::string("GetBuildFirst"       ), result_map },
+        {std::string("GetBuildFirstOfKind" ), result_map },
+        {std::string("GetBuildKind"        ), result_map },
+        {std::string("GetBuildLast"        ), result_map },
+        {std::string("GetBuildList"        ), result_map },
+        {std::string("GetBuildName"        ), result_map },
+        {std::string("GetBuildNext"        ), result_map },
+        {std::string("GetBuildOrder"       ), result_map },
+        {std::string("GetBuildOutput"      ), result_map },
+        {std::string("GetBuildWithName"    ), result_map },
+        {std::string("MoveBuildAfter"      ), result_map },
+        {std::string("MoveBuildBefore"     ), result_map },
+        {std::string("MoveBuildFirst"      ), result_map },
+        {std::string("MoveBuildLast"       ), result_map },
+        {std::string("SetBuildEnabled"     ), result_map },
+        {std::string("SetBuildKind"        ), result_map },
+        {std::string("SetBuildName"        ), result_map },
+        {std::string("SetBuildOutput"      ), result_map },
+        {std::string("SetBuildTemplate"    ), result_map }
+    };
+    
+    // -----------------------------------------
+    // HndBuildsEx:
+    // Additional properties and methods for Builds.
+    // availabel members ...
+    // -----------------------------------------
+    std::map< std::string, HelpNDocAPI_ArgumentMap > HndBuildsEx_FunctionNames = {
+        {std::string("DuplicateBuild"             ), result_map },
+        {std::string("GetBuildListFilteredByName" ), result_map },
+        {std::string("GetBuildTemplateOrDefault"  ), result_map },
+        {std::string("GetValidBuildOutput"        ), result_map }
+    };
+    
+    // -----------------------------------------
+    // HndBuildsMetaEx:
+    // Additional methods related to builds meta data.
+    // availabel members ...
+    // -----------------------------------------
+    std::map< std::string, HelpNDocAPI_ArgumentMap > HndBuildsMetaEx_FunctionNames = {
+        {std::string("GetChmButtonVisibilityHex"           ), result_map },
+        {std::string("GetChmNavigationPaneStyleHex"        ), result_map },
+        {std::string("GetProjectDateTimeFormatOverrides"   ), result_map },
+        {std::string("GetProjectSettingsOverrides"         ), result_map },
+        {std::string("ResetProjectDateTimeFormatOverrides" ), result_map },
+        {std::string("ResetProjectSettingsOverrides"       ), result_map },
+        {std::string("SetProjectDateTimeOverrides"         ), result_map },
+        {std::string("SetProjectSettingsOverrides"         ), result_map }
+    };
+    
+    // -----------------------------------------
+    // HndBuildsStatus:
+    // Handle relationship between builds and statuses.
+    // availabel members ...
+    // -----------------------------------------
+    std::map< std::string, HelpNDocAPI_ArgumentMap > HndBuildsStatus_FunctionNames = {
+        {std::string("AreBuildAndStatusAssociated"   ), result_map },
+        {std::string("AssociateBuildWithStatus"      ), result_map },
+        {std::string("DissociateAllForStatus"        ), result_map },
+        {std::string("DissociateAllForBuild"         ), result_map },
+        {std::string("DissociateBuildFromStatus"     ), result_map },
+        {std::string("GetStatusAssociatedWithBuild"  ), result_map },
+        {std::string("GetBuildsAssociatedWithStatus" ), result_map }
+    };
+    
+    // -----------------------------------------
+    // HndBuildsStatusEx:
+    // Additional methods to handle relationship between builds and statuses
+    // availabel members ...
+    // -----------------------------------------
+    std::map< std::string, HelpNDocAPI_ArgumentMap > HndBuildsStatusEx_FunctionNames = {
+        {std::string("IsTopicIncludedInBuild" ), result_map }
+    };
+    
+    // -----------------------------------------
+    // HndBuildsTags:
+    // Handle relationship between builds and tags.
+    // availabel members ...
+    // -----------------------------------------
+    std::map< std::string, HelpNDocAPI_ArgumentMap > HndBuildsTags_FunctionNames = {
+        {std::string("AreBuildAndTagAssociated"   ), result_map },
+        {std::string("AssociateBuildWithTag"      ), result_map },
+        {std::string("DissociateAllForTag"        ), result_map },
+        {std::string("DissociateAllForBuild"      ), result_map },
+        {std::string("DissociateBuildFromTag"     ), result_map },
+        {std::string("GetTagsAssociatedWithBuild" ), result_map },
+        {std::string("GetBuildsAssociatedWithTag" ), result_map }
+    };
+    
+    // -----------------------------------------
+    // HndBuildsTagsEx:
+    // Additional methods to handle relationship between builds and tags.
+    // availabel members ...
+    // -----------------------------------------
+    std::map< std::string, HelpNDocAPI_ArgumentMap > HndBuildsTagsEx_FunctionNames = {
+        {std::string("ConditionAdd"           ), result_map },
+        {std::string("ConditionInvert"        ), result_map },
+        {std::string("ConditionRemove"        ), result_map },
+        {std::string("ConditionReset"         ), result_map },
+        {std::string("IsTopicIncludedInBuild" ), result_map }
+    };
+    
+    
+    // -----------------------------------------
+    // HndEditor:
+    // Create and manage a topic editor.
+    // availabel members ...
+    // -----------------------------------------
+    std::map< std::string, HelpNDocAPI_ArgumentMap > HndEditor_FunctionNames = {
+        {std::string("ApplyStyleToSelection"              ), result_map },
+        {std::string("Clear"                              ), result_map },
+        {std::string("ConvertParagraphBreaksToLineBreaks" ), result_map },
+        {std::string("ConvertSelectionToSnippet"          ), result_map },
+        {std::string("CreateTemporaryEditor"              ), result_map },
+        {std::string("CreateTemporaryReportHelper"        ), result_map },
+        {std::string("CreateTemporaryViewer"              ), result_map },
+        {std::string("DestroyTemporaryEditor"             ), result_map },
+        {std::string("DestroyTemporaryReportHelper"       ), result_map },
+        {std::string("DestroyTemporaryViewer"             ), result_map },
+        {std::string("GetAnchorList"                      ), result_map },
+        {std::string("GetContentAsHtml"                   ), result_map },
+        {std::string("GetContentAsStream"                 ), result_map },
+        {std::string("GetContentAsText"                   ), result_map },
+        {std::string("GetCurrentAnchorName"               ), result_map },
+        {std::string("GetCurrentItem"                     ), result_map },
+        {std::string("GetCurrentPictureAltText"           ), result_map },
+        {std::string("GetCurrentPictureBackColor"         ), result_map },
+        {std::string("GetCurrentPictureHeight"            ), result_map },
+        {std::string("GetCurrentPictureMarginLeftRight"   ), result_map },
+        {std::string("GetCurrentPictureMarginTopBottom"   ), result_map },
+        {std::string("GetCurrentPicturePadding"           ), result_map },
+        {std::string("GetCurrentPictureVAlign"            ), result_map },
+        {std::string("GetCurrentPictureWidth"             ), result_map },
+        {std::string("GetUsedLibraryItems"                ), result_map },
+        {std::string("InsertAnchorBeforeCurrentItem"      ), result_map },
+        {std::string("InsertCondition"                    ), result_map },
+        {std::string("InsertContentFromHTML"              ), result_map },
+        {std::string("InsertFile"                         ), result_map },
+        {std::string("InsertFileFromLibraryItem"          ), result_map },
+        {std::string("InsertHyperLinkToTopicId"           ), result_map },
+        {std::string("InsertHyperLinkToUrl"               ), result_map },
+        {std::string("InsertLibraryItem"                  ), result_map },
+        {std::string("InsertLibraryItemContent"           ), result_map },
+        {std::string("InsertPageBreakBeforeCurrentItem"   ), result_map },
+        {std::string("InsertStream"                       ), result_map },
+        {std::string("InsertTopicContent"                 ), result_map },
+        {std::string("IsEmpty"                            ), result_map },
+        {std::string("MoveCaret"                          ), result_map },
+        {std::string("MoveCaretTo"                        ), result_map },
+        {std::string("MoveCarretToEnd"                    ), result_map },
+        {std::string("ProcessConditionalsForCurrentBuild" ), result_map },
+        {std::string("RemoveCurrentAnchor"                ), result_map },
+        {std::string("ReplaceLibraryItems"                ), result_map },
+        {std::string("SetAsTopicContent"                  ), result_map },
+        {std::string("SetContent"                         ), result_map },
+        {std::string("SetCurrentCellsAlignment"           ), result_map },
+        {std::string("SetCurrentPictureAltText"           ), result_map },
+        {std::string("SetCurrentPictureBackColor"         ), result_map },
+        {std::string("SetCurrentPictureHeight"            ), result_map },
+        {std::string("SetCurrentPictureMarginLeftRight"   ), result_map },
+        {std::string("SetCurrentPictureMarginTopBottom"   ), result_map },
+        {std::string("SetCurrentPicturePadding"           ), result_map },
+        {std::string("SetCurrentPictureVAlign"            ), result_map },
+        {std::string("SetCurrentPictureWidth"             ), result_map },
+        {std::string("SyntaxHighlightSelection"           ), result_map },
+        {std::string("TogglePageBreak"                    ), result_map },
+        {std::string("UpdateLibraryItem"                  ), result_map }
+    };
+    #endif
+    
+    // -----------------------------------------
+    //
+    //
+    // availabel members ...
+    // -----------------------------------------
+    #if 0
+    {std::string(""    ), {
+    {std::string(""    ), {
+    {std::string(""    ), {
+    
+    {std::string(""    ), {
+    #endif
+
+    // -----------------------------------------
+    // HndBuildInfo:
+    // Information about a specific build.
+    // availabel members ...
+    // -----------------------------------------
+    std::map< std::string, HelpNDocAPI_ArgumentMap > HndBuildInfo_FunctionNames = {
+        // Unique identifier of the build.
+        {std::string("Id"), {
+            { 0, _String }    // 0 = the result parameter: String
+            }
+        },
+        // Kind of the build: code, chm, epub, html, kindle, pdf, qthelp, word
+        {std::string("Kind"), {
+            { 0, _String }    // 0 = the result parameter: String
+            }
+        },
+        // Name of the build.
+        {std::string("Name"), {
+            { 0, _String }    // 0 = the result parameter: String
+            }
+        },
+        // Is the build enabled ?
+        {std::string("Enabled"), {
+            { 0, _Bool }      // 0 = the result parameter: Boolean
+            }
+        },
+        // Order of the build in the list. Greater will be built later.
+        {std::string("Order"), {
+            { 0, _Integer }   // 0 = the result parameter: Integer
+            }
+        },
+        // Output path of the build.
+        {std::string("Output"), {
+            { 0, _String }    // 0 = the result parameter: String
+            }
+        },
+        //Template name used for this build.
+        {std::string("Template"), {
+            { 0, _String }    // 0 = the result parameter: String
+            }
+        }
     };
 public:
     // constructor
     HelpNDocAPI() {
-        for (const std::string& name : HndUtils_FunctionNames)
-            HndUtils.push_back(name);
+        //HelpNDocAPI_ArgumentMap Arguments;
+        //Arguments[ 1 ] = 1;
+        
+    //    for (const std::string& name : HndUtils_FunctionNames)
+    //        HndUtils.push_back(name.first);
     }
-};
+};  // class HelpNDocAPI
+
+// placeholders, to save disk space
+std::string  HelpNDocAPI::_String  = std::string( "string"  );
+std::string  HelpNDocAPI::_Bool    = std::string( "bool"    );
+std::string  HelpNDocAPI::_Integer = std::string( "Integer" );
+std::string  HelpNDocAPI::_TColor  = std::string( "TColor"  );
+
 static class HelpNDocAPI HelpNDocAPI_Instance;
+
+}   // namespace: HelpNDoc_Version7_9_1
 
 // ---------------------------------------
 // max include files for $include macro:
@@ -778,9 +1057,13 @@ static class HelpNDocAPI HelpNDocAPI_Instance;
 YY_BUFFER_STATE include_stack[MAX_INCLUDE_DEPTH];
 
 static int include_stack_ptr = 0;
-#line 781 "parser.lex.cc"
 
-#line 783 "parser.lex.cc"
+static bool progressFile = false;    // stdin, or file ? (for the progress bar)
+static int  progressMax  = 1;        // maximum of progress value (file lines)
+static int  progressPos  = 1;        // current position cursor for progress bar
+#line 1064 "parser.lex.cc"
+
+#line 1066 "parser.lex.cc"
 
 #define INITIAL 0
 #define COMMENTS 1
@@ -1005,10 +1288,10 @@ YY_DECL
 		}
 
 	{
-#line 170 "parser.l"
+#line 453 "parser.l"
 
 
-#line 1011 "parser.lex.cc"
+#line 1294 "parser.lex.cc"
 
 	while ( /*CONSTCOND*/1 )		/* loops until end-of-file is reached */
 		{
@@ -1078,63 +1361,63 @@ do_action:	/* This label is used only to access EOF actions. */
 case 1:
 /* rule 1 can match eol */
 YY_RULE_SETUP
-#line 172 "parser.l"
+#line 455 "parser.l"
 { count(); BEGIN(INITIAL); }
 	YY_BREAK
 case 2:
 YY_RULE_SETUP
-#line 174 "parser.l"
+#line 457 "parser.l"
 { count(); BEGIN(COMMENTS); }
 	YY_BREAK
 case 3:
 YY_RULE_SETUP
-#line 175 "parser.l"
+#line 458 "parser.l"
 { count(); BEGIN(INITIAL);  }
 	YY_BREAK
 case 4:
 /* rule 4 can match eol */
 YY_RULE_SETUP
-#line 176 "parser.l"
+#line 459 "parser.l"
 { count(); }
 	YY_BREAK
 case 5:
 YY_RULE_SETUP
-#line 177 "parser.l"
+#line 460 "parser.l"
 { count(); }
 	YY_BREAK
 case 6:
 YY_RULE_SETUP
-#line 179 "parser.l"
+#line 462 "parser.l"
 { count();     Number(); return TOK_NUMBER; }
 	YY_BREAK
 case 7:
 YY_RULE_SETUP
-#line 180 "parser.l"
+#line 463 "parser.l"
 { count(); HexaNumber(); return TOK_NUMBER; }
 	YY_BREAK
 case 8:
 YY_RULE_SETUP
-#line 182 "parser.l"
+#line 465 "parser.l"
 { count(); BEGIN(TOK_INCLUDE); }
 	YY_BREAK
 case 9:
 YY_RULE_SETUP
-#line 183 "parser.l"
+#line 466 "parser.l"
 { count(); BEGIN(TOK_INCLUDE); }
 	YY_BREAK
 case 10:
 YY_RULE_SETUP
-#line 185 "parser.l"
+#line 468 "parser.l"
 { count(); printf("-> mainpage"); BEGIN(TOK_MAINPAGE); }
 	YY_BREAK
 case 11:
 YY_RULE_SETUP
-#line 186 "parser.l"
+#line 469 "parser.l"
 { yyerror("@end does not enclose a block statement."); }
 	YY_BREAK
 case 12:
 YY_RULE_SETUP
-#line 188 "parser.l"
+#line 471 "parser.l"
 {
 	count();
 	printf("inc: %s\n", yytext);
@@ -1175,122 +1458,122 @@ YY_RULE_SETUP
 	YY_BREAK
 case 13:
 YY_RULE_SETUP
-#line 226 "parser.l"
+#line 509 "parser.l"
 { count(); tmpvec.clear(); printf("--> autor  : "); BEGIN(TOK_SUB_AUTOR);     }
 	YY_BREAK
 case 14:
 YY_RULE_SETUP
-#line 227 "parser.l"
+#line 510 "parser.l"
 { count(); tmpvec.clear(); printf("--> title  : "); BEGIN(TOK_SUB_TITLE);     }
 	YY_BREAK
 case 15:
 YY_RULE_SETUP
-#line 228 "parser.l"
+#line 511 "parser.l"
 { count(); tmpvec.clear(); printf("--> version: "); BEGIN(TOK_SUB_VERSION);   }
 	YY_BREAK
 case 16:
 YY_RULE_SETUP
-#line 229 "parser.l"
+#line 512 "parser.l"
 { count(); tmpvec.clear(); printf("--> copyr  : "); BEGIN(TOK_SUB_COPYRIGHT); }
 	YY_BREAK
 case 17:
 YY_RULE_SETUP
-#line 230 "parser.l"
+#line 513 "parser.l"
 { count(); tmpvec.clear(); printf("--> summary: "); BEGIN(TOK_SUB_SUMMARY);   }
 	YY_BREAK
 case 18:
 YY_RULE_SETUP
-#line 232 "parser.l"
+#line 515 "parser.l"
 { count(); printf("-> end\n"); BEGIN(INITIAL); }
 	YY_BREAK
 case 19:
 YY_RULE_SETUP
-#line 233 "parser.l"
+#line 516 "parser.l"
 { count(); }
 	YY_BREAK
 case 20:
 YY_RULE_SETUP
-#line 235 "parser.l"
+#line 518 "parser.l"
 { count(); }
 	YY_BREAK
 case 21:
 /* rule 21 can match eol */
 YY_RULE_SETUP
-#line 236 "parser.l"
+#line 519 "parser.l"
 { count(); handle_str(); BEGIN(TOK_MAINPAGE); }
 	YY_BREAK
 case 22:
 YY_RULE_SETUP
-#line 237 "parser.l"
+#line 520 "parser.l"
 { count(); tmpvec.push_back(*yytext); }
 	YY_BREAK
 case 23:
 YY_RULE_SETUP
-#line 239 "parser.l"
+#line 522 "parser.l"
 { count(); }
 	YY_BREAK
 case 24:
 /* rule 24 can match eol */
 YY_RULE_SETUP
-#line 240 "parser.l"
+#line 523 "parser.l"
 { count(); handle_str(); BEGIN(TOK_MAINPAGE); }
 	YY_BREAK
 case 25:
 YY_RULE_SETUP
-#line 241 "parser.l"
+#line 524 "parser.l"
 { count(); tmpvec.push_back(*yytext); }
 	YY_BREAK
 case 26:
 YY_RULE_SETUP
-#line 243 "parser.l"
+#line 526 "parser.l"
 { count(); }
 	YY_BREAK
 case 27:
 /* rule 27 can match eol */
 YY_RULE_SETUP
-#line 244 "parser.l"
+#line 527 "parser.l"
 { count(); handle_str(); BEGIN(TOK_MAINPAGE); }
 	YY_BREAK
 case 28:
 YY_RULE_SETUP
-#line 245 "parser.l"
+#line 528 "parser.l"
 { count(); tmpvec.push_back(*yytext); }
 	YY_BREAK
 case 29:
 YY_RULE_SETUP
-#line 247 "parser.l"
+#line 530 "parser.l"
 { count(); }
 	YY_BREAK
 case 30:
 /* rule 30 can match eol */
 YY_RULE_SETUP
-#line 248 "parser.l"
+#line 531 "parser.l"
 { count(); handle_str(); BEGIN(TOK_MAINPAGE); }
 	YY_BREAK
 case 31:
 YY_RULE_SETUP
-#line 249 "parser.l"
+#line 532 "parser.l"
 { count(); tmpvec.push_back(*yytext); }
 	YY_BREAK
 case 32:
 YY_RULE_SETUP
-#line 251 "parser.l"
+#line 534 "parser.l"
 { count(); }
 	YY_BREAK
 case 33:
 /* rule 33 can match eol */
 YY_RULE_SETUP
-#line 252 "parser.l"
+#line 535 "parser.l"
 { count(); handle_str(); BEGIN(TOK_MAINPAGE); }
 	YY_BREAK
 case 34:
 YY_RULE_SETUP
-#line 253 "parser.l"
+#line 536 "parser.l"
 { count(); tmpvec.push_back(*yytext); }
 	YY_BREAK
 case 35:
 YY_RULE_SETUP
-#line 256 "parser.l"
+#line 539 "parser.l"
 {
     count();
     printf("op: %s\n", yytext);
@@ -1299,13 +1582,13 @@ YY_RULE_SETUP
 	YY_BREAK
 case 36:
 YY_RULE_SETUP
-#line 262 "parser.l"
+#line 545 "parser.l"
 { count(); }
 	YY_BREAK
 case 37:
 /* rule 37 can match eol */
 YY_RULE_SETUP
-#line 263 "parser.l"
+#line 546 "parser.l"
 { count(); }
 	YY_BREAK
 case YY_STATE_EOF(INITIAL):
@@ -1317,7 +1600,7 @@ case YY_STATE_EOF(TOK_SUB_TITLE):
 case YY_STATE_EOF(TOK_SUB_VERSION):
 case YY_STATE_EOF(TOK_SUB_COPYRIGHT):
 case YY_STATE_EOF(TOK_SUB_SUMMARY):
-#line 265 "parser.l"
+#line 548 "parser.l"
 {
     // ----------------------------------------------
     // check, if end of file, is it in main document,
@@ -1335,15 +1618,15 @@ case YY_STATE_EOF(TOK_SUB_SUMMARY):
 	YY_BREAK
 case 38:
 YY_RULE_SETUP
-#line 280 "parser.l"
+#line 563 "parser.l"
 ;
 	YY_BREAK
 case 39:
 YY_RULE_SETUP
-#line 282 "parser.l"
+#line 565 "parser.l"
 ECHO;
 	YY_BREAK
-#line 1346 "parser.lex.cc"
+#line 1629 "parser.lex.cc"
 
 	case YY_END_OF_BUFFER:
 		{
@@ -2358,7 +2641,7 @@ void yyfree (void * ptr )
 
 #define YYTABLES_NAME "yytables"
 
-#line 282 "parser.l"
+#line 565 "parser.l"
 
 //-- FUNCTION DEFINITIONS ---------------------------------
 
@@ -2366,9 +2649,11 @@ void yyfree (void * ptr )
 // console error output:
 // --------------------------------
 int yyerror(const char *p) {
-    printf("Error: %d:%d: %s\n",
-        line_row,
-        line_col,p);
+    std::cout << "Error: "
+              << std::dec << line_row << ":"
+              << std::dec << line_col << ": "
+              << p        <<
+    std::endl ;
     exit(1);
 }
 
@@ -2417,21 +2702,59 @@ void handle_str()
 // --------------------------------
 int main(int argc, char **argv)
 {
-    int result = 0;
+    int  result = 0;
 
-    printf("helpndoc (c) 2022 IBE-Software\n");
-    printf("all rights reserved.\n\n");
+    // --------------------------------------------------
+    // copyright banner - please dont remove it.
+    // --------------------------------------------------
+    std::cout << "helpconv (c) 2022 Jens Kallup <kallup.jens@web.de>" <<
+    std::endl << "all rights reserved." <<
+    std::endl <<
+    std::endl ;
 
+    // --------------------------------------------------
+    // argument must given, for file name; else stdin :
+    // --------------------------------------------------
     if (argc < 2) {
-        printf("no file given.\n");
+        std::cout << "no file given." <<
+        std::endl ;
         return 1;
     }
 
+    std::vector< std::string > args(argv, argv + argc);
+    for (const std::string& item : args)
+        std::cout << item << std::endl;
+    
+    return 0;
+    
+    // --------------------------------------------------
+    // I use the C version of "flex + bison", so we have
+    // to use old C functions to parse the source file :
+    // --------------------------------------------------
     if (!(yyin = fopen(argv[1],"r"))) {
-        fprintf(stderr,"error: can't find input \"%s\" "
-        "file !\nuse default stdin.\n",argv[1]);
+        std::cerr << "error: can't find input file: "
+                  << argv[1]
+                  <<
+        std::endl << "use default stdin." <<
+        std::endl ;
+
         yyset_in(stdin);
-    }   yyset_in(yyin);
+    }   else {
+        int ch = 0;
+        
+        // get line numbers
+        progressMax = 1;
+        while ((ch  = fgetc(yyin)) != EOF) {
+            if (ch == '\n')
+            progressMax++;
+        }
+        
+        std::cout << "Lines: " << std::dec << progressMax <<
+        std::endl ;
+        
+        yyset_in(yyin);
+        progressFile = true;
+    }
 
     result = yylex();
 	
