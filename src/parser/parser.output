@@ -3,11 +3,32 @@ Terminals unused in grammar
     TOK_NUMBER
 
 
+Rules useless in parser due to conflicts
+
+    9 chap_sub: chap_sub
+
+
+State 8 conflicts: 2 shift/reduce
+State 12 conflicts: 1 shift/reduce, 2 reduce/reduce
+
+
 Grammar
 
     0 $accept: program $end
 
     1 program: %empty
+    2        | program stmts
+
+    3 stmts: mainpage
+
+    4 $@1: %empty
+
+    5 mainpage: TOK_CHAP $@1 chap_sub TOK_CHAP
+
+    6 chap_sub: TOK_CHAPSUB TOK_STRING
+    7         | TOK_CHAPSUB TOK_ID
+    8         | chap_sub chap_sub
+    9         | chap_sub
 
 
 Terminals, with rules where they appear
@@ -15,15 +36,31 @@ Terminals, with rules where they appear
     $end (0) 0
     error (256)
     TOK_NUMBER <val_int64> (258)
+    TOK_ID <val_string> (259) 7
+    TOK_CHAP <val_string> (260) 5
+    TOK_CHAPSUB <val_string> (261) 6 7
+    TOK_STRING <val_string> (262) 6
 
 
 Nonterminals, with rules where they appear
 
-    $accept (4)
+    $accept (8)
         on left: 0
-    program (5)
-        on left: 1
-        on right: 0
+    program (9)
+        on left: 1 2
+        on right: 0 2
+    stmts (10)
+        on left: 3
+        on right: 2
+    mainpage (11)
+        on left: 5
+        on right: 3
+    $@1 (12)
+        on left: 4
+        on right: 5
+    chap_sub (13)
+        on left: 6 7 8 9
+        on right: 5 8 9
 
 
 State 0
@@ -38,8 +75,13 @@ State 0
 State 1
 
     0 $accept: program . $end
+    2 program: program . stmts
 
-    $end  shift, and go to state 2
+    $end      shift, and go to state 2
+    TOK_CHAP  shift, and go to state 3
+
+    stmts     go to state 4
+    mainpage  go to state 5
 
 
 State 2
@@ -47,3 +89,97 @@ State 2
     0 $accept: program $end .
 
     $default  accept
+
+
+State 3
+
+    5 mainpage: TOK_CHAP . $@1 chap_sub TOK_CHAP
+
+    $default  reduce using rule 4 ($@1)
+
+    $@1  go to state 6
+
+
+State 4
+
+    2 program: program stmts .
+
+    $default  reduce using rule 2 (program)
+
+
+State 5
+
+    3 stmts: mainpage .
+
+    $default  reduce using rule 3 (stmts)
+
+
+State 6
+
+    5 mainpage: TOK_CHAP $@1 . chap_sub TOK_CHAP
+
+    TOK_CHAPSUB  shift, and go to state 7
+
+    chap_sub  go to state 8
+
+
+State 7
+
+    6 chap_sub: TOK_CHAPSUB . TOK_STRING
+    7         | TOK_CHAPSUB . TOK_ID
+
+    TOK_ID      shift, and go to state 9
+    TOK_STRING  shift, and go to state 10
+
+
+State 8
+
+    5 mainpage: TOK_CHAP $@1 chap_sub . TOK_CHAP
+    8 chap_sub: chap_sub . chap_sub
+    9         | chap_sub .
+
+    TOK_CHAP     shift, and go to state 11
+    TOK_CHAPSUB  shift, and go to state 7
+
+    TOK_CHAP     [reduce using rule 9 (chap_sub)]
+    TOK_CHAPSUB  [reduce using rule 9 (chap_sub)]
+
+    chap_sub  go to state 12
+
+
+State 9
+
+    7 chap_sub: TOK_CHAPSUB TOK_ID .
+
+    $default  reduce using rule 7 (chap_sub)
+
+
+State 10
+
+    6 chap_sub: TOK_CHAPSUB TOK_STRING .
+
+    $default  reduce using rule 6 (chap_sub)
+
+
+State 11
+
+    5 mainpage: TOK_CHAP $@1 chap_sub TOK_CHAP .
+
+    $default  reduce using rule 5 (mainpage)
+
+
+State 12
+
+    8 chap_sub: chap_sub . chap_sub
+    8         | chap_sub chap_sub .
+    9         | chap_sub .
+
+    TOK_CHAPSUB  shift, and go to state 7
+
+    TOK_CHAP     reduce using rule 8 (chap_sub)
+    TOK_CHAP     [reduce using rule 9 (chap_sub)]
+    TOK_CHAPSUB  [reduce using rule 8 (chap_sub)]
+    TOK_CHAPSUB  [reduce using rule 9 (chap_sub)]
+    $default     reduce using rule 8 (chap_sub)
+
+    chap_sub  go to state 12

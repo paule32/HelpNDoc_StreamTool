@@ -1,0 +1,8 @@
+@mainpagE
+  \setauthor    "Jens Kallup"
+  \settitle     "A sample Book"
+  \setversion   "1.2.0"
+  \setcopyright "(c) 2022 by Jens Kallup <kallup.jens@web.de>"
+  \setsummary   "This is only a example."
+  \setcomment   "no comments available"
+@end

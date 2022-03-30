@@ -69,14 +69,46 @@
 /* First part of user prologue.  */
 #line 1 "parser.y"
 
+// -------------------------------------------------------
+// File: parser.l
+// Desc: parser for HelpNdoc.exe stream Tool 1.0
+//       With this tool, You can create HTML Help file on
+//       the command line console.
+//
+// Autor: Jens Kallup <kallup.jens@web.de>
+// Copy : (c) 2022 by Jens Kallup
+//
+// only for private use !
+// -------------------------------------------------------
+
+//-- HEADER IMPLEMENTATIONS ------------------------------
 #include "misc.hh"
 
+//-- FORWARD/EXTERN DECLARATIONS -------------------------
 int yylex(); 
 int yywrap() { return 1; }
 
 extern int yyerror(const char*);
 
-#line 80 "parser.tab.cc"
+static std::stringstream myss;
+static std::stringstream _page_ss;
+static std::string       _page_name;
+static std::string       _indent("    ");
+static                        std::vector< std::string >   _page ;
+static std::map< std::string, std::vector< std::string > > _pages;
+
+// -------------------------------------------------
+// stream out the _page data of the _pages map ...
+// -------------------------------------------------
+std::ostream& operator<<(std::ostream& os, std::vector< std::string >& li)
+{
+    for (const std::string& item : li)
+    std::cout << item <<
+    std::endl ;
+    return os ;
+}
+
+#line 112 "parser.tab.cc"
 
 # ifndef YY_CAST
 #  ifdef __cplusplus
@@ -108,8 +140,16 @@ enum yysymbol_kind_t
   YYSYMBOL_YYerror = 1,                    /* error  */
   YYSYMBOL_YYUNDEF = 2,                    /* "invalid token"  */
   YYSYMBOL_TOK_NUMBER = 3,                 /* TOK_NUMBER  */
-  YYSYMBOL_YYACCEPT = 4,                   /* $accept  */
-  YYSYMBOL_program = 5                     /* program  */
+  YYSYMBOL_TOK_ID = 4,                     /* TOK_ID  */
+  YYSYMBOL_TOK_CHAP = 5,                   /* TOK_CHAP  */
+  YYSYMBOL_TOK_CHAPSUB = 6,                /* TOK_CHAPSUB  */
+  YYSYMBOL_TOK_STRING = 7,                 /* TOK_STRING  */
+  YYSYMBOL_YYACCEPT = 8,                   /* $accept  */
+  YYSYMBOL_program = 9,                    /* program  */
+  YYSYMBOL_stmts = 10,                     /* stmts  */
+  YYSYMBOL_mainpage = 11,                  /* mainpage  */
+  YYSYMBOL_12_1 = 12,                      /* $@1  */
+  YYSYMBOL_chap_sub = 13                   /* chap_sub  */
 };
 typedef enum yysymbol_kind_t yysymbol_kind_t;
 
@@ -431,19 +471,19 @@ union yyalloc
 /* YYFINAL -- State number of the termination state.  */
 #define YYFINAL  2
 /* YYLAST -- Last index in YYTABLE.  */
-#define YYLAST   0
+#define YYLAST   8
 
 /* YYNTOKENS -- Number of terminals.  */
-#define YYNTOKENS  4
+#define YYNTOKENS  8
 /* YYNNTS -- Number of nonterminals.  */
-#define YYNNTS  2
+#define YYNNTS  6
 /* YYNRULES -- Number of rules.  */
-#define YYNRULES  2
+#define YYNRULES  10
 /* YYNSTATES -- Number of states.  */
-#define YYNSTATES  3
+#define YYNSTATES  13
 
 /* YYMAXUTOK -- Last valid token kind.  */
-#define YYMAXUTOK   258
+#define YYMAXUTOK   262
 
 
 /* YYTRANSLATE(TOKEN-NUM) -- Symbol number corresponding to TOKEN-NUM
@@ -482,14 +522,16 @@ static const yytype_int8 yytranslate[] =
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
-       2,     2,     2,     2,     2,     2,     1,     2,     3
+       2,     2,     2,     2,     2,     2,     1,     2,     3,     4,
+       5,     6,     7
 };
 
 #if YYDEBUG
   /* YYRLINE[YYN] -- Source line where rule number YYN was defined.  */
-static const yytype_int8 yyrline[] =
+static const yytype_uint8 yyrline[] =
 {
-       0,    23,    23
+       0,    62,    62,    63,    92,    96,    96,   123,   155,   174,
+     175
 };
 #endif
 
@@ -505,8 +547,9 @@ static const char *yysymbol_name (yysymbol_kind_t yysymbol) YY_ATTRIBUTE_UNUSED;
    First, the terminals, then, starting at YYNTOKENS, nonterminals.  */
 static const char *const yytname[] =
 {
-  "\"end of file\"", "error", "\"invalid token\"", "TOK_NUMBER",
-  "$accept", "program", YY_NULLPTR
+  "\"end of file\"", "error", "\"invalid token\"", "TOK_NUMBER", "TOK_ID",
+  "TOK_CHAP", "TOK_CHAPSUB", "TOK_STRING", "$accept", "program", "stmts",
+  "mainpage", "$@1", "chap_sub", YY_NULLPTR
 };
 
 static const char *
@@ -521,11 +564,11 @@ yysymbol_name (yysymbol_kind_t yysymbol)
    (internal) symbol number NUM (which must be that of a token).  */
 static const yytype_int16 yytoknum[] =
 {
-       0,   256,   257,   258
+       0,   256,   257,   258,   259,   260,   261,   262
 };
 #endif
 
-#define YYPACT_NINF (-1)
+#define YYPACT_NINF (-5)
 
 #define yypact_value_is_default(Yyn) \
   ((Yyn) == YYPACT_NINF)
@@ -539,7 +582,8 @@ static const yytype_int16 yytoknum[] =
      STATE-NUM.  */
 static const yytype_int8 yypact[] =
 {
-      -1,     0,    -1
+      -5,     0,    -5,    -5,    -5,    -5,    -4,    -3,     1,    -5,
+      -5,    -5,    -4
 };
 
   /* YYDEFACT[STATE-NUM] -- Default reduction number in state STATE-NUM.
@@ -547,19 +591,20 @@ static const yytype_int8 yypact[] =
      means the default is an error.  */
 static const yytype_int8 yydefact[] =
 {
-       2,     0,     1
+       2,     0,     1,     5,     3,     4,     0,     0,     0,     8,
+       7,     6,     9
 };
 
   /* YYPGOTO[NTERM-NUM].  */
 static const yytype_int8 yypgoto[] =
 {
-      -1,    -1
+      -5,    -5,    -5,    -5,    -5,     2
 };
 
   /* YYDEFGOTO[NTERM-NUM].  */
 static const yytype_int8 yydefgoto[] =
 {
-       0,     1
+       0,     1,     4,     5,     6,    12
 };
 
   /* YYTABLE[YYPACT[STATE-NUM]] -- What to do in state STATE-NUM.  If
@@ -567,31 +612,34 @@ static const yytype_int8 yydefgoto[] =
      number is the opposite.  If YYTABLE_NINF, syntax error.  */
 static const yytype_int8 yytable[] =
 {
-       2
+       2,     9,     7,     0,    10,     3,    11,     7,     8
 };
 
 static const yytype_int8 yycheck[] =
 {
-       0
+       0,     4,     6,    -1,     7,     5,     5,     6,     6
 };
 
   /* YYSTOS[STATE-NUM] -- The (internal number of the) accessing
      symbol of state STATE-NUM.  */
 static const yytype_int8 yystos[] =
 {
-       0,     5,     0
+       0,     9,     0,     5,    10,    11,    12,     6,    13,     4,
+       7,     5,    13
 };
 
   /* YYR1[YYN] -- Symbol number of symbol that rule YYN derives.  */
 static const yytype_int8 yyr1[] =
 {
-       0,     4,     5
+       0,     8,     9,     9,    10,    12,    11,    13,    13,    13,
+      13
 };
 
   /* YYR2[YYN] -- Number of symbols on the right hand side of rule YYN.  */
 static const yytype_int8 yyr2[] =
 {
-       0,     2,     0
+       0,     2,     0,     2,     1,     0,     4,     2,     2,     2,
+       1
 };
 
 
@@ -1058,8 +1106,134 @@ yyreduce:
   YY_REDUCE_PRINT (yyn);
   switch (yyn)
     {
+  case 3: /* program: program stmts  */
+#line 63 "parser.y"
+                    {
+        std::string cOc;
+        std::cout << "begin" <<
+        std::endl ;
 
-#line 1063 "parser.tab.cc"
+        _indent.clear();
+        _indent.append("    ");
+
+        for (auto const& pd : _pages) {
+            cOc.clear();
+            cOc.append(_indent);
+            
+            if (caseInsensitiveStringCompare(pd.first,"@mainpage") == true) {
+                cOc.append("mainpage;");
+            }   else {
+                cOc.append(pd.first);
+            }
+            
+            std::cout << cOc <<
+            std::endl ;
+        }
+
+        std::cout << "end."  <<
+        std::endl <<
+        std::endl ;
+    }
+#line 1138 "parser.tab.cc"
+    break;
+
+  case 5: /* $@1: %empty  */
+#line 96 "parser.y"
+               {
+        if (caseInsensitiveStringCompare((yyvsp[0].val_string),"@mainpage") == true) {
+            _page_name = "@mainpage";
+            
+            _page_ss.str("");
+            _page_ss << "procedure mainpage;" << std::endl;
+            _page_ss << "begin"               << std::endl;
+        }
+        else {
+            yyerror("expect @mainpage");
+        }
+    }
+#line 1155 "parser.tab.cc"
+    break;
+
+  case 6: /* mainpage: TOK_CHAP $@1 chap_sub TOK_CHAP  */
+#line 108 "parser.y"
+                      {
+        if (caseInsensitiveStringCompare((yyvsp[0].val_string),"@end") == true) {
+            _page_ss << "end;" ;
+            _page.push_back(_page_ss.str());
+            _pages[ _page_name ] = _page;
+            
+            std::cout << _pages[ _page_name ] << std::endl;
+        }
+        else {
+            yyerror("expect @end");
+        }
+    }
+#line 1172 "parser.tab.cc"
+    break;
+
+  case 7: /* chap_sub: TOK_CHAPSUB TOK_STRING  */
+#line 123 "parser.y"
+                             {
+        // replace " with '
+        std::string qu((yyvsp[0].val_string));
+        qu[ 0 ]           = '\'';
+        qu[ qu.size()-1 ] = '\'';
+        
+        // clear
+        myss.str(std::string(""));
+        myss << "HndProjects.";
+        
+        _indent.clear();
+        _indent.append("    ");
+        _indent.append(myss.str());
+        
+        if (caseInsensitiveStringCompare((yyvsp[-1].val_string), "\\settitle"     ) == true) { _page_ss << _indent << "SetProjectTitle("     << qu << ");"; goto scan1; } else
+        if (caseInsensitiveStringCompare((yyvsp[-1].val_string), "\\setauthor"    ) == true) { _page_ss << _indent << "SetProjectAuthor("    << qu << ");"; goto scan1; } else
+        if (caseInsensitiveStringCompare((yyvsp[-1].val_string), "\\setversion"   ) == true) { _page_ss << _indent << "SetProjectVersion("   << qu << ");"; goto scan1; } else
+        if (caseInsensitiveStringCompare((yyvsp[-1].val_string), "\\setcopyright" ) == true) { _page_ss << _indent << "SetProjectCopyright(" << qu << ");"; goto scan1; } else
+        if (caseInsensitiveStringCompare((yyvsp[-1].val_string), "\\setsummary"   ) == true) { _page_ss << _indent << "SetProjectSummary("   << qu << ");"; goto scan1; } else
+        if (caseInsensitiveStringCompare((yyvsp[-1].val_string), "\\setcomment"   ) == true) { _page_ss << _indent << "SetProjectComment("   << qu << ");"; goto scan1; }
+
+        // clear
+        myss.str(std::string(""));
+        myss      << "expect:" <<
+        std::endl << "  \\setAutor, \\setCopyright, \\setSummary, \\setTitle, \\setVersion." <<
+        std::endl << "  \\getAutor, \\getCopyright, \\getSummary, \\getTitle, \\getVersion." <<
+        std::endl ;
+        
+        yyerror(myss.str().c_str());
+        scan1:
+        _page_ss << std::endl;
+    }
+#line 1209 "parser.tab.cc"
+    break;
+
+  case 8: /* chap_sub: TOK_CHAPSUB TOK_ID  */
+#line 155 "parser.y"
+                         {
+        if (caseInsensitiveStringCompare((yyvsp[-1].val_string), "\\gettitle"     ) == true) { _page_ss << _indent << (yyvsp[0].val_string) << " := GetProjectTitle;"    ; goto scan2; } else
+        if (caseInsensitiveStringCompare((yyvsp[-1].val_string), "\\getauthor"    ) == true) { _page_ss << _indent << (yyvsp[0].val_string) << " := GetProjectAuthor;"   ; goto scan2; } else
+        if (caseInsensitiveStringCompare((yyvsp[-1].val_string), "\\getversion"   ) == true) { _page_ss << _indent << (yyvsp[0].val_string) << " := GetProjectVersion;"  ; goto scan2; } else
+        if (caseInsensitiveStringCompare((yyvsp[-1].val_string), "\\getcopyright" ) == true) { _page_ss << _indent << (yyvsp[0].val_string) << " := GetProjectCopyright;"; goto scan2; } else
+        if (caseInsensitiveStringCompare((yyvsp[-1].val_string), "\\getsummary"   ) == true) { _page_ss << _indent << (yyvsp[0].val_string) << " := GetProjectSummary;"  ; goto scan2; } else
+        if (caseInsensitiveStringCompare((yyvsp[-1].val_string), "\\getcomment"   ) == true) { _page_ss << _indent << (yyvsp[0].val_string) << " := GetProjectComment;"  ; goto scan2; }
+        
+        // clear
+        myss.str(std::string(""));
+        myss      << "expect:" <<
+        std::endl << "  \\setAutor, \\setCopyright, \\setSummary, \\setTitle, \\setVersion." <<
+        std::endl << "  \\getAutor, \\getCopyright, \\getSummary, \\getTitle, \\getVersion." <<
+        std::endl ;
+        
+        yyerror(myss.str().c_str());
+        scan2:
+        _page_ss << std::endl;
+    }
+#line 1233 "parser.tab.cc"
+    break;
+
+
+#line 1237 "parser.tab.cc"
 
       default: break;
     }
@@ -1253,5 +1427,5 @@ yyreturn:
   return yyresult;
 }
 
-#line 25 "parser.y"
+#line 178 "parser.y"
 

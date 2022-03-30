@@ -10,11 +10,10 @@
 //
 // only for private use !
 // -------------------------------------------------------
-#include "misc.hh"
+#define YYDEBUG 1
 
-#define YYDEBUG 0
-
-#include "parser.tab.hh"
+# include "misc.hh"
+# include "parser.tab.hh"
 
 // Forward declerations ----------------------------------
 void Number();
@@ -27,6 +26,8 @@ int line_row = 1;
 int line_col = 1;
 
 std::vector<char> tmpvec;
+
+extern void init_buffer();
 
 void handle_str();
 
@@ -161,7 +162,6 @@ private:
     // Properties and methods for Builds.
     // availabel members ...
     // -----------------------------------------
-    #if 0
     std::map< std::string, HelpNDocAPI_ArgumentMap > HndBuilds_FunctionNames = {
         {std::string("CreateBuild"         ), result_map },
         {std::string("DeleteAllBuilds"     ), result_map },
@@ -334,7 +334,56 @@ private:
         {std::string("TogglePageBreak"                    ), result_map },
         {std::string("UpdateLibraryItem"                  ), result_map }
     };
-    #endif
+    
+    
+    // -----------------------------------------
+    // HndProjects:
+    // Properties and methods for projects.
+    // availabel members ...
+    // -----------------------------------------
+    std::map< std::string, HelpNDocAPI_ArgumentMap > HndProjects_FunctionNames = {
+        {std::string("BackupProject"                   ), result_map },
+        {std::string("CloseProject"                    ), result_map },
+        {std::string("CopyProject"                     ), result_map },
+        {std::string("DeleteProject"                   ), result_map },
+        {std::string("GetProjectAuthor"                ), result_map },
+        {std::string("GetProjectBusy"                  ), result_map },
+        {std::string("GetProjectCharset"               ), result_map },
+        {std::string("GetProjectCharsetAsHtml"         ), result_map },
+        {std::string("GetProjectClosing"               ), result_map },
+        {std::string("GetProjectComment"               ), result_map },
+        {std::string("GetProjectCopyright"             ), result_map },
+        {std::string("GetProjectCreating"              ), result_map },
+        {std::string("GetProjectCssContent"            ), result_map },
+        {std::string("GetProjectId"                    ), result_map },
+        {std::string("GetProjectLanguage"              ), result_map },
+        {std::string("GetProjectLanguageCode"          ), result_map },
+        {std::string("GetProjectLanguageCodeAsHtml"    ), result_map },
+        {std::string("GetProjectName"                  ), result_map },
+        {std::string("GetProjectNeverSaved"            ), result_map },
+        {std::string("GetProjectOpenning"              ), result_map },
+        {std::string("GetProjectTitle"                 ), result_map },
+        {std::string("GetProjectVersion"               ), result_map },
+        {std::string("ImportTableOfContentsForProject" ), result_map },
+        {std::string("LockResource"                    ), result_map },
+        {std::string("MoveProject"                     ), result_map },
+        {std::string("NewProject"                      ), result_map },
+        {std::string("OpenProject"                     ), result_map },
+        {std::string("SaveProject"                     ), result_map },
+        {std::string("SetProjectAuthor"                ), result_map },
+        {std::string("SetProjectCharset"               ), result_map },
+        {std::string("SetProjectComment"               ), result_map },
+        {std::string("SetProjectCopyright"             ), result_map },
+        {std::string("SetProjectDefaultTopic"          ), result_map },
+        {std::string("SetProjectLanguage"              ), result_map },
+        {std::string("SetProjectModified"              ), result_map },
+        {std::string("SetProjectNeverSaved"            ), result_map },
+        {std::string("SetProjectSummary"               ), result_map },
+        {std::string("SetProjectTitle"                 ), result_map },
+        {std::string("SetProjectVersion"               ), result_map },
+        {std::string("UnlockResource"                  ), result_map },
+        {std::string("VacuumProject"                   ), result_map }
+    };
     
     // -----------------------------------------
     //
@@ -429,6 +478,7 @@ static int  progressPos  = 1;        // current position cursor for progress bar
 %option caseless
 
 DIGIT       [0-9\.]
+LETTER      [a-zA-Z]
 HEXALETTER  [a-fA-F]
 HEXANUMBER  [0][x](({DIGIT}|{HEXALETTER})+)
 NUM         {DIGIT}+
@@ -437,18 +487,12 @@ ID          [a-z_]+[a-zA-Z0-9_]*
 REMS1       ((\/\/.*)|(\&\&.*)|(\/\/.*\n*)|(\&\&.*\n*))*
 REMS2       ((\/\*\*\/)|(\/\*(\n*|.*)\*\/))*
 REMSER      {WS}{REMS1}|{REMS2}{WS}
-FILENAME    \"(([a-zA-Z]\:\\[ a-zA-Z0-9\_\.\\]*)|([a-zA-Z]\:[ a-zA-Z0-9\_\.\\]*)|([ a-zA-Z0-9\_\.\\])*)\"
+FILE1       [ a-zA-Z0-9\_\.\\]*
+FILENAME    \"(({LETTER}\:\\{FILE1})|({LETTER}\:{FILE1})|({FILE1})*)\"
+STRING      (\"(.*)\")+
 
 %x COMMENTS
-
 %x TOK_INCLUDE
-%x TOK_MAINPAGE
-
-%x TOK_SUB_AUTOR
-%x TOK_SUB_TITLE
-%x TOK_SUB_VERSION
-%x TOK_SUB_COPYRIGHT
-%x TOK_SUB_SUMMARY
 
 %%
 
@@ -465,10 +509,35 @@ FILENAME    \"(([a-zA-Z]\:\\[ a-zA-Z0-9\_\.\\]*)|([a-zA-Z]\:[ a-zA-Z0-9\_\.\\]*)
 \$"include"([ \t]+) { count(); BEGIN(TOK_INCLUDE); }
 \$[iI]+([ \t]+)     { count(); BEGIN(TOK_INCLUDE); }
 
-\@"mainpage" { count(); printf("-> mainpage"); BEGIN(TOK_MAINPAGE); }
-\@"end"      { yyerror("@end does not enclose a block statement."); }
+\@{ID} {
+    count();
+    yylval.val_string = (char *) malloc(strlen(yytext)+1); strcpy(
+    yylval.val_string, yytext);
+    return TOK_CHAP;
+}
 
-<TOK_INCLUDE>{FILENAME}           {
+\\{ID} {
+    count();
+    yylval.val_string = (char *) malloc(strlen(yytext)+1); strcpy(
+    yylval.val_string, yytext);
+    return TOK_CHAPSUB;
+}
+
+{STRING} {
+    count();
+    yylval.val_string = (char *) malloc(strlen(yytext)+1); strcpy(
+    yylval.val_string, yytext);
+    return TOK_STRING;
+}
+
+{ID} {
+    count();
+    yylval.val_string = (char *) malloc(strlen(yytext)+1); strcpy(
+    yylval.val_string, yytext);
+    return TOK_ID;
+}
+
+<TOK_INCLUDE>{STRING}           {
 	count();
 	printf("inc: %s\n", yytext);
 	
@@ -506,36 +575,6 @@ FILENAME    \"(([a-zA-Z]\:\\[ a-zA-Z0-9\_\.\\]*)|([a-zA-Z]\:[ a-zA-Z0-9\_\.\\]*)
 	BEGIN(INITIAL);
 }
 
-<TOK_MAINPAGE>\\"autor"           { count(); tmpvec.clear(); printf("--> autor  : "); BEGIN(TOK_SUB_AUTOR);     }
-<TOK_MAINPAGE>\\"title"           { count(); tmpvec.clear(); printf("--> title  : "); BEGIN(TOK_SUB_TITLE);     }
-<TOK_MAINPAGE>\\"version"         { count(); tmpvec.clear(); printf("--> version: "); BEGIN(TOK_SUB_VERSION);   }
-<TOK_MAINPAGE>\\"copyright"       { count(); tmpvec.clear(); printf("--> copyr  : "); BEGIN(TOK_SUB_COPYRIGHT); }
-<TOK_MAINPAGE>\\"summary"         { count(); tmpvec.clear(); printf("--> summary: "); BEGIN(TOK_SUB_SUMMARY);   }
-
-<TOK_MAINPAGE>\@"end" { count(); printf("-> end\n"); BEGIN(INITIAL); }
-<TOK_MAINPAGE>.       { count(); }
-
-<TOK_SUB_AUTOR><TOK_MAINPAGE>     { count(); }
-<TOK_SUB_AUTOR>\n                 { count(); handle_str(); BEGIN(TOK_MAINPAGE); }
-<TOK_SUB_AUTOR>.                  { count(); tmpvec.push_back(*yytext); }
-
-<TOK_SUB_TITLE><TOK_MAINPAGE>     { count(); }
-<TOK_SUB_TITLE>\n                 { count(); handle_str(); BEGIN(TOK_MAINPAGE); }
-<TOK_SUB_TITLE>.                  { count(); tmpvec.push_back(*yytext); }
-
-<TOK_SUB_VERSION><TOK_MAINPAGE>   { count(); }
-<TOK_SUB_VERSION>\n               { count(); handle_str(); BEGIN(TOK_MAINPAGE); }
-<TOK_SUB_VERSION>.                { count(); tmpvec.push_back(*yytext); }
-
-<TOK_SUB_COPYRIGHT><TOK_MAINPAGE> { count(); }
-<TOK_SUB_COPYRIGHT>\n             { count(); handle_str(); BEGIN(TOK_MAINPAGE); }
-<TOK_SUB_COPYRIGHT>.              { count(); tmpvec.push_back(*yytext); }
-
-<TOK_SUB_SUMMARY><TOK_MAINPAGE>   { count(); }
-<TOK_SUB_SUMMARY>\n               { count(); handle_str(); BEGIN(TOK_MAINPAGE); }
-<TOK_SUB_SUMMARY>.                { count(); tmpvec.push_back(*yytext); }
-
-
 [-+*/\,\.\=] {
     count();
     printf("op: %s\n", yytext);
@@ -560,7 +599,7 @@ FILENAME    \"(([a-zA-Z]\:\\[ a-zA-Z0-9\_\.\\]*)|([a-zA-Z]\:[ a-zA-Z0-9\_\.\\]*)
     }
 }
 
-.		;
+.   {   yyerror("syntax error."); }
 
 %%
 //-- FUNCTION DEFINITIONS ---------------------------------
@@ -568,13 +607,16 @@ FILENAME    \"(([a-zA-Z]\:\\[ a-zA-Z0-9\_\.\\]*)|([a-zA-Z]\:[ a-zA-Z0-9\_\.\\]*)
 // --------------------------------
 // console error output:
 // --------------------------------
-int yyerror(const char *p) {
-    std::cout << "Error: "
-              << std::dec << line_row << ":"
-              << std::dec << line_col << ": "
-              << p        <<
-    std::endl ;
-    exit(1);
+int yyerror(const char *p)
+{
+    std::stringstream ss;
+    ss << "Error: "
+       << std::dec << line_row << ":"
+       << std::dec << line_col << ": "
+       << p        << std::endl ;
+       
+    throw EyyErrorExceptionE(ss.str());
+    return 0;
 }
 
 // --------------------------------
@@ -617,6 +659,36 @@ void handle_str()
     std::cout << id << std::endl;
 }
 
+// ------------------------------------------------------
+// convert two strings to lower case, then
+// compare two strings of equal case-insensitive.
+// return true, if they equal
+// ------------------------------------------------------
+bool caseInsensitiveStringCompare(
+    const std::string& str1,
+    const std::string& str2)
+{
+    std::string str1Cpy( str1 );
+    std::string str2Cpy( str2 );
+    
+    std::transform( str1Cpy.begin(), str1Cpy.end(), str1Cpy.begin(), ::tolower );
+    std::transform( str2Cpy.begin(), str2Cpy.end(), str2Cpy.begin(), ::tolower );
+    
+    return ( str1Cpy == str2Cpy );
+}
+std::string UpperCase(const std::string& str)
+{
+    std::string cp( str );
+    std::transform( cp.begin(), cp.end(), cp.begin(), ::toupper );
+    return cp;
+}
+std::string LowerCase(const std::string& str)
+{
+    std::string cp( str );
+    std::transform( cp.begin(), cp.end(), cp.begin(), ::tolower );
+    return cp;
+}
+
 // --------------------------------
 // application entry point:
 // --------------------------------
@@ -632,52 +704,110 @@ int main(int argc, char **argv)
     std::endl <<
     std::endl ;
 
-    // --------------------------------------------------
-    // argument must given, for file name; else stdin :
-    // --------------------------------------------------
-    if (argc < 2) {
-        std::cout << "no file given." <<
-        std::endl ;
-        return 1;
-    }
-
-    std::vector< std::string > args(argv, argv + argc);
-    for (const std::string& item : args)
-        std::cout << item << std::endl;
-    
-    return 0;
-    
-    // --------------------------------------------------
-    // I use the C version of "flex + bison", so we have
-    // to use old C functions to parse the source file :
-    // --------------------------------------------------
-    if (!(yyin = fopen(argv[1],"r"))) {
-        std::cerr << "error: can't find input file: "
-                  << argv[1]
-                  <<
-        std::endl << "use default stdin." <<
-        std::endl ;
-
-        yyset_in(stdin);
-    }   else {
-        int ch = 0;
-        
-        // get line numbers
-        progressMax = 1;
-        while ((ch  = fgetc(yyin)) != EOF) {
-            if (ch == '\n')
-            progressMax++;
+    try {
+        // --------------------------------------------------
+        // argument must given, for file name; else stdin :
+        // --------------------------------------------------
+        if (argc < 2) {
+            std::cout << "no file given." <<
+            std::endl ;
+            return 1;
         }
-        
-        std::cout << "Lines: " << std::dec << progressMax <<
-        std::endl ;
-        
-        yyset_in(yyin);
-        progressFile = true;
-    }
 
-    result = yylex();
-	
+        //std::vector< std::string > args(argv, argv + argc);
+        //for (const std::string& item : args)
+        //std::cout << item << std::endl;
+    
+        // --------------------------------------------------
+        // I use the C version of "flex + bison", so we have
+        // to use old C functions to parse the source file :
+        // --------------------------------------------------
+        if (!(yyin = fopen(argv[1],"r"))) {
+            std::cerr << "error: can't find input file: "
+                      << argv[1]
+                      <<
+            std::endl << "use default stdin." <<
+            std::endl ;
+
+            yyset_in(stdin);
+        }   else {
+            int ch = 0;
+
+            // get line numbers
+            std::cout << "read up file(s) ..." <<
+            std::endl ;
+            
+            progressMax = 1;
+            fseek(yyin,0,SEEK_SET);
+            while ((ch  = fgetc(yyin)) != EOF) {
+                if (ch == '\n')
+                progressMax++;
+            }
+            fseek(yyin,0,SEEK_SET);
+            
+            std::cout << "lines: "   <<
+            std::dec  << progressMax <<
+            std::endl ;
+            
+            yyset_in(yyin);
+            progressFile = true;
+        }
+
+        std::cout << std::endl;
+        
+        // ------------------------------------
+        // print banner COC - Code of Conduct:
+        // ------------------------------------
+        std::stringstream   coc; coc
+        << "// This file was created automatically."         << std::endl
+        << "// PLEASE DON'T EDIT IT."                        << std::endl
+        << "// "                                             << std::endl
+        << "// (c) 2022 by Jens Kallup <kallup.jens@web.de>" << std::endl
+        << "// All rights reserved,"                         << std::endl
+        << "// "                                             << std::endl
+        << "// only for private use !!!"                     << std::endl;
+        
+        std::string coc1("// ");
+        std::string coc2("// ");
+        
+        coc1.insert(3, 74, '-');
+        coc2.insert(3, 74, '-');
+        
+        std::cout << coc1 << std::endl << coc.str();
+        std::cout << coc2 << std::endl;
+
+        // ------------------------------------
+        // start grammar parser:
+        // ------------------------------------
+        if (!(result = yyparse()))
+        throw EyyErrorNo("SUCCESS");
+    }
+    catch (const EyyErrorNo& e) {
+        std::cout << e.what() <<
+        std::endl ;
+        result = 0;
+    }
+    catch (const EyyErrorExceptionE& e) {
+        std::cout << "FAILURE." <<
+        std::endl << e.what()   <<
+        std::endl ;
+        result = 1;
+    }
+    catch (const std::exception& e) {
+        std::cout << "FAILURE." <<
+        std::endl ;
+        std::cout << "a standard exception was caught:" <<
+        std::endl << e.what();
+        result = 1;
+    }
+    catch (...) {
+        std::cout << "FAILURE." <<
+        std::endl ;
+        std::cout << "unknown exception occurr." <<
+        std::endl ;
+        result = 1;
+    }
+    
     fclose(yyin);
     return result;
 }
